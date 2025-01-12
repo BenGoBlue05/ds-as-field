@@ -1,0 +1,88 @@
+---
+title: "NYPD"
+author: "Ben Lewis"
+date: "2025-01-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1: Start an Rmd Document
+Start an Rmd document that describes and imports the shooting project dataset in a reproducible manner.
+
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+
+```{r, message=FALSE}
+url <- "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
+df <- read_csv(url)
+```
+
+## Step 2: Tidy and Transform Your Data
+Add to your Rmd document a summary of the data and clean up your dataset by changing appropriate variables to factor and date types and getting rid of any columns not needed.  Show the summary of your data to be sure there is no missing data. If there is missing data, describe how you plan to handle it.
+
+
+```{r}
+summary(df)
+```
+
+```{r}
+df <- df[, c("INCIDENT_KEY", "OCCUR_DATE")]
+df$OCCUR_DATE = mdy(df$OCCUR_DATE)
+```
+
+```{r}
+df$OCCUR_YEAR = year(df$OCCUR_DATE)
+df$OCCUR_MONTH = month(df$OCCUR_DATE)
+summary(df)
+sum(is.na(df))
+```
+
+## Step 3: Add Visualizations and Analysis
+Add at least two different visualizations & some analysis to your Rmd.  Does this raise additional questions that you should investigate?  
+
+```{r}
+year_counts = as.data.frame(table(df$OCCUR_YEAR)) 
+colnames(year_counts) <- c("Year", "Shootings")
+
+
+ggplot(year_counts, aes(x = Year, y = Shootings)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5) 
+  ) +
+  labs(
+    title = "Shootings per Year",
+    x = NULL
+  )
+```
+
+```{r}
+df_2019_to_2023 <- df %>%
+  filter(OCCUR_YEAR >= 2019 & OCCUR_YEAR <= 2023)
+
+monthly_shootings <- df_2019_to_2023 %>%
+  group_by(OCCUR_YEAR, OCCUR_MONTH) %>%
+  summarise(incident_count = n(), .groups = "drop")
+
+ggplot(monthly_shootings, aes(x = OCCUR_MONTH, y = incident_count, color = as.factor(OCCUR_YEAR), group = OCCUR_YEAR)) +
+  geom_line(size = 1) +
+  scale_x_continuous(breaks = 1:12, labels = month.abb) +  # Show months as abbreviations
+  theme_minimal() +
+  labs(
+    title = "Monthly Shootings",
+    x = "Month",
+    y = "Shootings",
+    color = "Year"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Step 4: Add Bias Identification
+Write the conclusion to your project report and include any possible sources of bias.  Be sure to identify what your personal bias might be and how you have mitigated that.
