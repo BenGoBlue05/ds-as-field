@@ -1,5 +1,5 @@
 ---
-title: "NYPD"
+title: "NYC Impact of Covid on Gun Violence"
 author: "Ben Lewis"
 date: "2025-01-10"
 output: pdf_document
@@ -27,7 +27,7 @@ Add to your Rmd document a summary of the data and clean up your dataset by chan
 
 
 ```{r}
-summary(df)
+glimpse(df)
 ```
 
 ```{r}
@@ -38,10 +38,12 @@ df$OCCUR_DATE = mdy(df$OCCUR_DATE)
 ```{r}
 df$OCCUR_YEAR = year(df$OCCUR_DATE)
 df$OCCUR_MONTH = month(df$OCCUR_DATE)
-summary(df)
 sum(is.na(df))
+glimpse(df)
 ```
-
+```{r}
+summary(select(df, -INCIDENT_KEY))
+```
 ## Step 3: Add Visualizations and Analysis
 Add at least two different visualizations & some analysis to your Rmd.  Does this raise additional questions that you should investigate?  
 
@@ -72,17 +74,23 @@ monthly_shootings <- df_2019_to_2023 %>%
   summarise(incident_count = n(), .groups = "drop")
 
 ggplot(monthly_shootings, aes(x = OCCUR_MONTH, y = incident_count, color = as.factor(OCCUR_YEAR), group = OCCUR_YEAR)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +  # Show months as abbreviations
   theme_minimal() +
   labs(
     title = "Monthly Shootings",
-    x = "Month",
+    x = NULL,
     y = "Shootings",
     color = "Year"
   ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5) 
+  )
 ```
+
+
+Additional questions include crime per capita. I assume a lot of people in NYC left in 2020 to areas with more space. 
 
 ## Step 4: Add Bias Identification
 Write the conclusion to your project report and include any possible sources of bias.  Be sure to identify what your personal bias might be and how you have mitigated that.
