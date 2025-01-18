@@ -9,13 +9,17 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Step 1: Start an Rmd Document
-Start an Rmd document that describes and imports the shooting project dataset in a reproducible manner.
+This report is an analysis of the impact of Covid-19 on gun violence in NYC.
 
+## Step 1: Start an Rmd Document
+*Start an Rmd document that describes and imports the shooting project dataset in a reproducible manner.*
+
+This project uses the tidyverse library.
 ```{r, message=FALSE}
 library(tidyverse)
 ```
 
+It imports the publicly available [data set](https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic) that captures every shooting incident that occurred in NYC from 2006 to 2023.
 
 ```{r, message=FALSE}
 url <- "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
@@ -23,29 +27,39 @@ df <- read_csv(url)
 ```
 
 ## Step 2: Tidy and Transform Your Data
-Add to your Rmd document a summary of the data and clean up your dataset by changing appropriate variables to factor and date types and getting rid of any columns not needed.  Show the summary of your data to be sure there is no missing data. If there is missing data, describe how you plan to handle it.
-
+*Add to your Rmd document a summary of the data and clean up your dataset by changing appropriate variables to factor and date types and getting rid of any columns not needed.  Show the summary of your data to be sure there is no missing data. If there is missing data, describe how you plan to handle it.*
 
 ```{r}
+# View summary of data displaying all columns with examples
 glimpse(df)
 ```
 
-```{r}
-df <- df[, c("INCIDENT_KEY", "OCCUR_DATE")]
-df$OCCUR_DATE = mdy(df$OCCUR_DATE)
-```
+We will focus on the number of incidents as they relate to the onset of Covid-19. We will examine annual trends and investigate how the shootings in 2020 correlated with key events that year. We will only need the date column and can remove the other columns. We will add columns for year and month.
 
 ```{r}
+# Remove all other columns besides incident ID and date
+df <- df[, c("INCIDENT_KEY", "OCCUR_DATE")]
+
+# Make sure there are no null values
+if (sum(is.na(df$OCCUR_DATE)) > 0) {
+  stop("Dates column has a null value")
+}
+# Transform date from character sequence to Date
+df$OCCUR_DATE = mdy(df$OCCUR_DATE)
+
+# Add year and month columns
 df$OCCUR_YEAR = year(df$OCCUR_DATE)
 df$OCCUR_MONTH = month(df$OCCUR_DATE)
-sum(is.na(df))
+
+# View transformed df
 glimpse(df)
-```
-```{r}
 summary(select(df, -INCIDENT_KEY))
 ```
+
 ## Step 3: Add Visualizations and Analysis
-Add at least two different visualizations & some analysis to your Rmd.  Does this raise additional questions that you should investigate?  
+*Add at least two different visualizations & some analysis to your Rmd.  Does this raise additional questions that you should investigate?*
+
+### Annual Trends
 
 ```{r}
 year_counts = as.data.frame(table(df$OCCUR_YEAR)) 
@@ -65,11 +79,30 @@ ggplot(year_counts, aes(x = Year, y = Shootings)) +
   )
 ```
 
-```{r}
-df_2019_to_2023 <- df %>%
-  filter(OCCUR_YEAR >= 2019 & OCCUR_YEAR <= 2023)
+As you can see the number of shootings experienced a steady decline from over 2000 incidents in 2006 to under 1000 in 2017 and remained level at slightly under 1000 from 2017-2019. The first reported case of Covid in NYC occurred on March 1, 2020. That year the number of incidents doubled from the previous year. After a slight increase in 2021 there was steep decline in 2022 and 2023. 
 
-monthly_shootings <- df_2019_to_2023 %>%
+### Monthly Trends
+
+The surge in shootings in 2020 was influenced by several factors. Below are some key events:
+
+- **Full Lockdown**, *March 22, 2020*
+-- The State of New York implemented an executive order closing all non-essential businesses and ordering all residents to stay home except for essential needs like groceries or medical care.
+
+- **Protests Following George Floyd's Death**, *May-June, 2020*
+-- The killing of George Floyd by police on May 25, 2020 sparked widespread protests and heightened tensions between communities and law enforcement.
+
+- **Police Budget Cuts**, *July, 2020*
+-- NYC government cut approximately $1 billion from the NYPD budget in response to public pressure.
+
+It is important to remember these are just a few of the events that may have had an impact. Some other events and factors to consider are the economic and social disruption, strain on the courts and criminal justice system, bail reform laws that took effect in January 2020, gang violence, and increase in gun sales among other factors.
+
+Let's examine the trend for the shootings that occurred within 2020 by comparing the monthly incidents with the 2 years before 2020 with the 2 years afterward
+
+```{r}
+df_2018_to_2022 <- df %>%
+  filter(OCCUR_YEAR >= 2018 & OCCUR_YEAR <= 2022)
+
+monthly_shootings <- df_2018_to_2022 %>%
   group_by(OCCUR_YEAR, OCCUR_MONTH) %>%
   summarise(incident_count = n(), .groups = "drop")
 
