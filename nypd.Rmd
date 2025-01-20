@@ -62,10 +62,11 @@ summary(select(df, -INCIDENT_KEY))
 ### Annual Trends
 
 ```{r}
+# Dataframe grouping by year
 year_counts = as.data.frame(table(df$OCCUR_YEAR)) 
 colnames(year_counts) <- c("Year", "Shootings")
 
-
+# Bar plot
 ggplot(year_counts, aes(x = Year, y = Shootings)) +
   geom_bar(stat = "identity", fill = "lightblue") +
   theme_minimal() +
@@ -96,16 +97,19 @@ The surge in shootings in 2020 was influenced by several factors. Below are some
 
 It is important to remember these are just a few of the events that may have had an impact. Some other events and factors to consider are the economic and social disruption, strain on the courts and criminal justice system, bail reform laws that took effect in January 2020, gang violence, and increase in gun sales among other factors.
 
-Let's examine the trend for the shootings that occurred within 2020 by comparing the monthly incidents with the 2 years before 2020 with the 2 years afterward
+Let's examine the trend for the shootings that occurred within 2020 by comparing the monthly incidents with the 2 years before and after 2020.
 
 ```{r}
+# Filter years 2018 - 2022
 df_2018_to_2022 <- df %>%
   filter(OCCUR_YEAR >= 2018 & OCCUR_YEAR <= 2022)
 
+# Group each year by month
 monthly_shootings <- df_2018_to_2022 %>%
   group_by(OCCUR_YEAR, OCCUR_MONTH) %>%
   summarise(incident_count = n(), .groups = "drop")
 
+# Line chart for each year
 ggplot(monthly_shootings, aes(x = OCCUR_MONTH, y = incident_count, color = as.factor(OCCUR_YEAR), group = OCCUR_YEAR)) +
   geom_line(linewidth = 1) +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +  # Show months as abbreviations
@@ -123,7 +127,17 @@ ggplot(monthly_shootings, aes(x = OCCUR_MONTH, y = incident_count, color = as.fa
 ```
 
 
-Additional questions include crime per capita. I assume a lot of people in NYC left in 2020 to areas with more space. 
+One of the first things to notice is that all years follow a seasonal trend with incidents peaking in the summer and at their lowest in the winter. In 2020 shootings were similar to the 2 years prior until May when they started skyrocketing. The summer months of 2020 were significantly higher than the those same months in the 2 years before and after 2020. 
+
+Some things that warrant further investigation would be to include events in the 2 years prior and after 2020 that may have influenced gun violence in those years. Another thing to consider is how the population may have changed in those years.The population in NYC declined after 2020 so it would be interesting to compare the shootings per capita.   
 
 ## Step 4: Add Bias Identification
-Write the conclusion to your project report and include any possible sources of bias.  Be sure to identify what your personal bias might be and how you have mitigated that.
+*Write the conclusion to your project report and include any possible sources of bias.  Be sure to identify what your personal bias might be and how you have mitigated that.*
+
+**Conclusion**
+
+The analysis of gun violence in NYC during the COVID-19 pandemic reveals several important trends. There was a significant increase in shootings in 2020, coinciding with major events such as the onset of the pandemic, social unrest, and law enforcement policy changes. While the data shows correlation, causation cannot be assumed. Additional factors such as economic distress and social isolation may have contributed.
+
+**Possible Sources of Bias**
+For full disclosure I have lived in Chicago since 2013, and there were multiple shootings in very close proximity to where I lived in 2020. I came in with the expectation of a surge in shootings in NYC in the summer of 2020. I did my best to mitigate my bias by focusing on the data rather than trying to slice the data in a way that fit my preconceived notions. 
+
