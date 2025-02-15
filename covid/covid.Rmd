@@ -2,7 +2,9 @@
 title: "Covid"
 author: "Ben Lewis"
 date: "2025-01-05"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -10,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(stringr)
+library(tidyverse)
+
 url_in <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
 
 file_names <- c("time_series_covid19_confirmed_global.csv", "time_series_covid19_deaths_global.csv", "time_series_covid19_confirmed_US.csv", "time_series_covid19_deaths_US.csv"
