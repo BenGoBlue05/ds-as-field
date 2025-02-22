@@ -6,16 +6,23 @@ output:
   pdf_document: default
   html_document: default
 ---
+# Overview
+Florida gained a reputation for having relatively lax COVID-19 rules compared to other states, particularly in contrast to more restrictive states like California and New York. Under Governor Ron DeSantis, Florida prioritized keeping businesses, schools, and public spaces open while resisting strict mask mandates, vaccine requirements, and prolonged lockdowns. We will explore the outcomes of COVID-19 relative the country as a whole.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Set up
+
+
+### Import libraries
 ```{r message=FALSE}
 library(stringr)
 library(tidyverse)
 ```
 
+### Download data
 ```{r message=FALSE}
 url_in <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
 
@@ -30,7 +37,8 @@ us_cases <- read_csv(urls[3])
 us_deaths <- read_csv(urls[4])
 ```
 
-```{r }
+### Clean and format data
+```{r message=FALSE}
 global_cases <- global_cases %>% pivot_longer(cols = -c(`Province/State`, `Country/Region`, `Lat`, `Long`), names_to = "date", values_to = "cases") %>% select(-c(Lat, Long))
 
 global_deaths <- global_deaths %>% pivot_longer(cols = -c(`Province/State`, `Country/Region`, `Lat`, `Long`), names_to = "date", values_to = "deaths") %>% select(-c(Lat, Long))
@@ -56,10 +64,7 @@ us_deaths <- us_deaths %>%
 
 us <- us_cases %>%
   full_join(us_deaths)
-```
 
-
-```{r}
 global <- global %>%
   unite("Combined_Key",
         c(Province_State, Country_Region),
@@ -78,10 +83,7 @@ global <- global %>%
   select(Province_State, Country_Region, date,
          cases, deaths, Population,
          Combined_Key)
-```
 
-
-```{r}
 us_by_state <- us %>%
   group_by(Province_State, Country_Region, date) %>%
   summarize(cases = sum(cases), deaths = sum(deaths),
@@ -101,18 +103,22 @@ us_totals <- us_by_state %>%
   ungroup() %>%
   filter(cases > 0)
 
-tail(us_totals)
-```
-
-
-```{r }
 state <- "Florida"
 state_totals <- us_by_state %>%
   filter(Province_State == state) %>%
   filter(cases > 0 & deaths > 0)
 
+```
+
+
+```{r }
+tail(us_totals)
+
 tail(state_totals)
 ```
+# Data Analysis
+
+Let's visualize the data by viewing the total number of COVID-19 deaths in the US and Florida.
 ```{r }
   ggplot() +
     geom_line(data = us_totals, aes(x = date, y = deaths, color = "US")) +
@@ -120,9 +126,12 @@ tail(state_totals)
     geom_line(data = state_totals, aes(x = date, y = deaths, color = state)) +
     geom_point(data = state_totals, aes(x = date, y = deaths, color = state)) +
     theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
-    labs(title = "Total COVID19 Deaths", y = NULL)
+    labs(title = "Total COVID-19 Deaths", y = NULL)
 ```
 
+We see that Florida makes up a relatively small percentage of the total deaths in the US. Also note that both Florida and the US deaths grew at an approximately linear rate.
+
+Let's now normalize the data by comparing the deaths per million.
 ```{r }
   ggplot() +
     geom_line(data = us_totals, aes(x = date, y = deaths_per_mill, color = "US")) +
@@ -130,35 +139,53 @@ tail(state_totals)
     geom_line(data = state_totals, aes(x = date, y = deaths_per_mill, color = state)) +
     geom_point(data = state_totals, aes(x = date, y = deaths_per_mill, color = state)) +
     theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
-    labs(title = "COVID19 Deaths per Million", y = NULL)
+    labs(title = "COVID-19 Deaths per Million", y = NULL)
 ```
+The graph shows that deaths were pretty similar between the summers of 2020 and 2021. When the Delta variant surged in August-September 2021 the deaths grew at a higher rate than the national average, and the total deaths remained elevated to the end of time period captured in the graph (2023).
+
+Since it appears the deaths grew at an approximately linear rate let us develop linear regression models for both the US and Florida and and compare them.
 ```{r}
 us_totals$days_since_start <- as.numeric(us_totals$date - min(us_totals$date))
 
-us_mod <- lm(deaths ~ days_since_start, data = us_totals)
+us_mod <- lm(deaths_per_mill ~ days_since_start, data = us_totals)
 summary(us_mod)
+
+us_totals$pred_deaths <- predict(us_mod, newdata = us_totals)
+ggplot(us_totals, aes(x = date)) +
+  geom_point(aes(y = deaths_per_mill, color = "Actual")) +
+  geom_point(aes(y = pred_deaths, color = "Predicted")) +
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
+  labs(title = "US COVID-19 Deaths per Million", y = NULL)
 ```
+
 
 ```{r}
 state_totals$days_since_start <- as.numeric(state_totals$date - min(state_totals$date))
-state_mod <- lm(deaths ~ days_since_start, data = state_totals)
+state_mod <- lm(deaths_per_mill ~ days_since_start, data = state_totals)
 summary(state_mod)
-```
 
-
-```{r}
-us_totals$pred_deaths <- predict(us_mod, newdata = us_totals)
-ggplot(us_totals, aes(x = date)) +
-  geom_point(aes(y = deaths, color = "Actual")) +
-  geom_point(aes(y = pred_deaths, color = "Predicted")) +
-  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
-  labs(title = "US COVID19 Deaths", y = NULL)
-```
-```{r}
 state_totals$pred_deaths <- predict(state_mod, newdata = state_totals)
 ggplot(state_totals, aes(x = date)) +
-  geom_point(aes(y = deaths, color = "Actual")) +
+  geom_point(aes(y = deaths_per_mill, color = "Actual")) +
   geom_point(aes(y = pred_deaths, color = "Predicted")) +
   theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
-  labs(title = paste(state, "COVID19 Deaths"), y = NULL)
+  labs(title = paste(state, "COVID-19 Deaths per Million"), y = NULL)
 ```
+
+Now let us compare the linear regressions.
+
+```{r }
+  ggplot() +
+    geom_point(data = us_totals, aes(x = date, y = pred_deaths, color = "US")) +
+    geom_point(data = state_totals, aes(x = date, y = pred_deaths, color = state)) +
+    theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) +
+    labs(title = "COVID-19 Deaths per Million", y = NULL)
+```
+
+The linear regression models indicate that while the first deaths in the US occurred outside of Florida, deaths grew at a higher rate in Florida. It is important to note that in actuality deaths did not grow at an perfectly linear rate. There were surges in January 2021, the Delta Variant surge in August-September 2021, and the Omicron wave in January 2022. 
+
+# Sources of Possible Bias
+
+Florida’s older population means it naturally had a higher risk of severe outcomes, making direct comparisons to the national average potentially misleading. Using linear regression assumes a steady increase in deaths, whereas real-world trends were shaped by variant-driven surges, vaccination rollouts, and seasonal effects.
+
+Overall, while the findings indicate a higher rate of death growth in Florida, these results should be interpreted with caution. Adjusting for demographic differences, incorporating non-linear modeling, and exploring additional data sources would provide a more comprehensive understanding of Florida’s COVID-19 outcomes.
